@@ -1,0 +1,177 @@
+<%#
+LuCI - Lua Configuration Interface
+
+Copyright (C) 2014, QA Cafe, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id$
+
+-%>
+
+<%+header%>
+
+<h2><a id="content" name="content"><%:CloudShark%></a></h2>
+
+<form id="f_form" method="post" action="<%=pcdata(luci.http.getenv("REQUEST_URI"))%>">
+	<div class="cbi-map">
+
+		<fieldset class="cbi-section">
+			<legend><%:Start network capture%></legend>
+			<div>
+				<select title="<%:Interface%>" style="width:auto" name="s_interfaces">
+				<%
+					local nixio = require "nixio"
+					for k, v in ipairs(nixio.getifaddrs()) do
+						if v.family == "packet" then
+						%>
+							<option value="<%=v.name%>"><%=v.name%> </option>
+						<%
+						end
+					end
+				%>
+					<option value="any">any</option>
+				</select>
+				<select title="<%:Timeout in seconds%>" name="s_timeout" style="width:auto">
+					<option value="60">1min</option>
+					<option value="300">5min</option>
+					<option value="900">15min</option>
+				</select>
+				<input style="margin: 5px 0" type="text" title="<%:Filter%>" placeholder="filter" name="i_filter" />
+				<input type="button" id="bt_action" data-action="start" value="<%:Start capture%>" class="cbi-button" />
+			</div>
+		</fieldset>
+	</div>
+
+	<fieldset class="cbi-section">
+		<span id="cshark-rc-output"></span>
+	</fieldset>
+</form>
+
+<fieldset class="cbi-section">
+	<legend><%:Capture links%></legend>
+		<div class="cbi-section-node">
+			<table id="t_link_list" class="cbi-section-table">
+				<tr class="cbi-section-table-titles">
+				<th class="cbi-section-table-cell">Capture URL</th>
+				<th class="cbi-section-table-cell">Capture time</th>
+			</tr>
+			<tr class="cbi-section-table-row">
+				<td colspan="2"><em><br />There are no captures available yet.</em></td>
+			</tr>
+		</table>
+	</div>
+</fieldset>
+
+<script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+<script type="text/javascript">//<![CDATA[
+	var init = 0;
+	var pid_file = 0;
+
+	function get_current_date()
+	{
+		function pad_str(str)
+		{
+			return (str < 10) ? "0" + str : str;
+		}
+
+		var current_date = new Date();
+		return current_date.getFullYear() + "-" +
+				pad_str(current_date.getMonth() + 1) + "-" +
+				pad_str(current_date.getDate()) + " " +
+				pad_str(current_date.getHours()) + ":" +
+				pad_str(current_date.getMinutes()) + ":" +
+				pad_str(current_date.getSeconds());
+	}
+
+	var bt_action = document.getElementById('bt_action');
+	bt_action.onclick = function()
+	{
+		var action = this.getAttribute("data-action");
+		var output = document.getElementById('cshark-rc-output');
+		var csxhr = new XHR();
+
+		if (action == "stop")
+		{
+			bt_action.style.display='none';
+			output.innerHTML =
+				'<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> ' +
+				'<%:Waiting for upload to complete...%>';
+
+			csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_stop', null,
+			function(x)
+			{
+				if (!x || x.responseText.trim() !== "0")
+				{
+					output.innerHTML = '<span class="error"><%:Unable to stop capture!%></span>';
+				}
+
+				bt_action.value = '<%:Start capture%>';
+				bt_action.setAttribute('data-action', 'start');
+			});
+
+		}
+		else if (action == "start")
+		{
+			var form = document.getElementById('f_form');
+			var if_n = form.s_interfaces.selectedIndex;
+			var t_n = form.s_timeout.selectedIndex;
+			var ifname = form.s_interfaces.options[if_n].value.trim();
+			var filter_val = form.i_filter.value.trim();
+			var timeout_val = form.s_timeout.options[t_n].value.trim();
+
+			if (!ifname || !timeout_val) return;
+
+			if (output)
+			{
+				output.innerHTML =
+					'<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> ' +
+					'<%:Waiting for command to complete...%>';
+
+				bt_action.value = '<%:Stop capture%>';
+				bt_action.setAttribute('data-action', 'stop');
+
+				csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_start/' + ifname + '/' + timeout_val + '/' + filter_val, null,
+				function(x)
+				{
+					if (!x)
+					{
+						output.innerHTML = '<span class="error"><%:Invalid response!%></span>';
+					}
+					else
+					{
+						var data = x.responseText.trim();
+						output.innerHTML = '<pre>' + data + '</pre>';
+
+						var last_line = data.lastIndexOf("\n");
+						var url = last_line > 0 ? data.substring(last_line) : data;
+						if (url.indexOf("http") == -1) return;
+
+						var t_link = document.getElementById("t_link_list");
+						if (!t_link) return;
+
+						if (!init)
+						{
+							t_link.deleteRow(1);
+							init = 1;
+						}
+
+						var row = t_link.insertRow(1);
+						row.insertCell(0).innerHTML = '<a href="'+url+'" target="_blank">'+url+'</a>';
+						row.insertCell(1).innerHTML = get_current_date();
+					}
+
+					bt_action.value = '<%:Start capture%>';
+					bt_action.setAttribute('data-action', 'start');
+					bt_action.style.display='inline';
+				});
+			}
+		}
+	}
+//]]></script>
+
+<%+footer%>
