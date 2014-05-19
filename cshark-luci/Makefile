@@ -35,13 +35,18 @@ endef
 define Package/cshark-luci/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller/
 	$(INSTALL_BIN) \
-		./files/cshark.lua \
+		./files/controller/cshark.lua \
 		$(1)/usr/lib/lua/luci/controller/
 
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/
 	$(INSTALL_BIN) \
-		./files/cshark.htm \
+		./files/view/cshark.htm \
 		$(1)/usr/lib/lua/luci/view/
+
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi/
+	$(INSTALL_BIN) \
+		./files/model/cbi/cshark.lua \
+		$(1)/usr/lib/lua/luci/model/cbi/
 endef
 
 $(eval $(call BuildPackage,cshark-luci))

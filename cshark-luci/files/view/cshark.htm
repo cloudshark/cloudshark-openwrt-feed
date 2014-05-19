@@ -13,49 +13,40 @@ $Id$
 
 -%>
 
-<%+header%>
-
-<h2><a id="content" name="content"><%:CloudShark%></a></h2>
-
-<form id="f_form" method="post" action="<%=pcdata(luci.http.getenv("REQUEST_URI"))%>">
-	<div class="cbi-map">
-
-		<fieldset class="cbi-section">
-			<legend><%:Start network capture%></legend>
-			<div>
-				<select title="<%:Interface%>" style="width:auto" name="s_interfaces">
-				<%
-					local nixio = require "nixio"
-					for k, v in ipairs(nixio.getifaddrs()) do
-						if v.family == "packet" then
-						%>
-							<option value="<%=v.name%>"><%=v.name%> </option>
-						<%
-						end
-					end
+<fieldset class="cbi-section">
+	<legend><%:Start network capture%></legend>
+	<div>
+		<select title="<%:Interface%>" style="width:auto" id="s_interfaces">
+		<%
+			local nixio = require "nixio"
+			for k, v in ipairs(nixio.getifaddrs()) do
+				if v.family == "packet" then
 				%>
-					<option value="any">any</option>
-				</select>
-				<select title="<%:Timeout in seconds%>" name="s_timeout" style="width:auto">
-					<option value="60">1min</option>
-					<option value="300">5min</option>
-					<option value="900">15min</option>
-				</select>
-				<input style="margin: 5px 0" type="text" title="<%:Filter%>" placeholder="filter" name="i_filter" />
-				<input type="button" id="bt_action" data-action="start" value="<%:Start capture%>" class="cbi-button" />
-			</div>
-		</fieldset>
+					<option value="<%=v.name%>"><%=v.name%> </option>
+				<%
+				end
+			end
+		%>
+			<option value="any">any</option>
+		</select>
+		<select title="<%:Timeout in seconds%>" id="s_timeout" style="width:auto">
+			<option value="60">1min</option>
+			<option value="300">5min</option>
+			<option value="900">15min</option>
+		</select>
+		<input style="margin: 5px 0" type="text" title="<%:Filter%>" placeholder="filter" id="i_filter" />
+		<input type="button" id="bt_action" data-action="start" value="<%:Start capture%>" class="cbi-button" />
 	</div>
+</fieldset>
 
-	<fieldset class="cbi-section">
-		<span id="cshark-rc-output"></span>
-	</fieldset>
-</form>
+<fieldset class="cbi-section">
+	<span id="cshark-rc-output"></span>
+</fieldset>
 
 <fieldset class="cbi-section">
 	<legend><%:Capture links%></legend>
-		<div class="cbi-section-node">
-			<table id="t_link_list" class="cbi-section-table">
+	<div class="cbi-section-node">
+		<table id="t_link_list" class="cbi-section-table">
 				<tr class="cbi-section-table-titles">
 				<th class="cbi-section-table-cell">Capture URL</th>
 				<th class="cbi-section-table-cell">Capture time</th>
@@ -66,6 +57,8 @@ $Id$
 		</table>
 	</div>
 </fieldset>
+
+<hr/>
 
 <script type="text/javascript" src="<%=resource%>/cbi.js"></script>
 <script type="text/javascript">//<![CDATA[
@@ -112,17 +105,21 @@ $Id$
 
 				bt_action.value = '<%:Start capture%>';
 				bt_action.setAttribute('data-action', 'start');
+				bt_action.style.display='inline';
 			});
 
 		}
 		else if (action == "start")
 		{
-			var form = document.getElementById('f_form');
-			var if_n = form.s_interfaces.selectedIndex;
-			var t_n = form.s_timeout.selectedIndex;
-			var ifname = form.s_interfaces.options[if_n].value.trim();
-			var filter_val = form.i_filter.value.trim();
-			var timeout_val = form.s_timeout.options[t_n].value.trim();
+			var s_interfaces = document.getElementById('s_interfaces');
+			var s_timeout = document.getElementById('s_timeout');
+			var i_timeout = document.getElementById('i_filter');
+
+			var if_n = s_interfaces.selectedIndex;
+			var t_n = s_timeout.selectedIndex;
+			var ifname = s_interfaces.options[if_n].value.trim();
+			var filter_val = i_filter.value.trim();
+			var timeout_val = s_timeout.options[t_n].value.trim();
 
 			if (!ifname || !timeout_val) return;
 
@@ -149,20 +146,21 @@ $Id$
 
 						var last_line = data.lastIndexOf("\n");
 						var url = last_line > 0 ? data.substring(last_line) : data;
-						if (url.indexOf("http") == -1) return;
-
-						var t_link = document.getElementById("t_link_list");
-						if (!t_link) return;
-
-						if (!init)
+						if (url.indexOf("http") != -1)
 						{
-							t_link.deleteRow(1);
-							init = 1;
-						}
+							var t_link = document.getElementById("t_link_list");
+							if (!t_link) return;
 
-						var row = t_link.insertRow(1);
-						row.insertCell(0).innerHTML = '<a href="'+url+'" target="_blank">'+url+'</a>';
-						row.insertCell(1).innerHTML = get_current_date();
+							if (!init)
+							{
+								t_link.deleteRow(1);
+								init = 1;
+							}
+
+							var row = t_link.insertRow(1);
+							row.insertCell(0).innerHTML = '<a href="'+url+'" target="_blank">'+url+'</a>';
+							row.insertCell(1).innerHTML = get_current_date();
+						}
 					}
 
 					bt_action.value = '<%:Start capture%>';
@@ -173,5 +171,3 @@ $Id$
 		}
 	}
 //]]></script>
-
-<%+footer%>
