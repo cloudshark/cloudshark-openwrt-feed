@@ -26,12 +26,12 @@ function index()
 		page.leaf = true
 end
 
-function cshark_iface_dump_start(ifname, timeout, filter)
+function cshark_iface_dump_start(ifname, value, flag, filter)
 	if ifname == nil then
 		ifname = 'any'
 	end
-	if timeout == nil then
-		timeout = '0'
+	if value == nil then
+		value = '0'
 	end
 	if filter == nil then
 		filter = ''
@@ -39,7 +39,7 @@ function cshark_iface_dump_start(ifname, timeout, filter)
 
 	luci.http.prepare_content("text/html")
 
-	local res = io.popen("/sbin/cshark -i " .. ifname .. " -T " .. timeout .. " -p /tmp/cshark-luci.pid " .. filter .. " 2>&1")
+	local res = io.popen("/sbin/cshark -i " .. ifname .. " -" .. flag .. " " .. value .. " -p /tmp/cshark-luci.pid " .. filter .. " 2>&1")
 	if res then
 		while true do
 			local ln = res:read("*l")
