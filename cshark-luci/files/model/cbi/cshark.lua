@@ -25,7 +25,6 @@ if fs.access("/etc/config/cshark") then
 
 	s:option(Value, "url", translate("CloudShark URL"))
 	s:option(Value, "token", translate("CloudShark API token"))
-	s:option(Value, "ca", translate("CloudShark certificate"))
 end
 
 return m
