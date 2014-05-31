@@ -68,12 +68,9 @@ $Id$
 	<legend><%:Capture links%></legend>
 	<div class="cbi-section-node">
 		<table id="t_link_list" class="cbi-section-table">
-				<tr class="cbi-section-table-titles">
+			<tr class="cbi-section-table-titles">
 				<th class="cbi-section-table-cell"><%:Capture URL%></th>
 				<th class="cbi-section-table-cell"><%:Capture time%></th>
-			</tr>
-			<tr class="cbi-section-table-row">
-				<td colspan="2"><em><br />There are no captures available yet.</em></td>
 			</tr>
 		</table>
 	</div>
@@ -83,17 +80,22 @@ $Id$
 
 <script type="text/javascript" src="<%=resource%>/cbi.js"></script>
 <script type="text/javascript">//<![CDATA[
-	var init = 0;
-	var pid_file = 0;
 
-	function get_current_date()
+	var capture_running = 0;
+	var pid_file = 0;
+	var bt_action = document.getElementById('bt_action');
+	var a_clear_links = document.getElementById('a_clear_links');
+	var output = document.getElementById('cshark-rc-output');
+	var loader = '<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" width="16" height="16" style="vertical-align:middle" /> ';
+
+	function get_date(timestamp)
 	{
 		function pad_str(str)
 		{
 			return (str < 10) ? "0" + str : str;
 		}
 
-		var current_date = new Date();
+		var current_date = new Date(timestamp * 1000);
 		return current_date.getFullYear() + "-" +
 				pad_str(current_date.getMonth() + 1) + "-" +
 				pad_str(current_date.getDate()) + " " +
@@ -102,26 +104,21 @@ $Id$
 				pad_str(current_date.getSeconds());
 	}
 
-	var bt_action = document.getElementById('bt_action');
 	bt_action.onclick = function()
 	{
 		var action = this.getAttribute("data-action");
-		var output = document.getElementById('cshark-rc-output');
 		var csxhr = new XHR();
 
 		if (action == "stop")
 		{
-			bt_action.disabled=true;
-			output.innerHTML =
-				'<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> ' +
-				'<%:Waiting for upload to complete...%>';
+			bt_action.disabled = true;
 
 			csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_stop', null,
 			function(x)
 			{
-				if (!x || x.responseText.trim() !== "0")
+				if (!x || x.responseText.trim() != "0")
 				{
-					output.innerHTML = '<span class="error"><%:Unable to stop capture!%></span>';
+					XHR.halt();
 				}
 			});
 
@@ -144,51 +141,135 @@ $Id$
 
 			if (!ifname || isNaN(tx_val) || !type_val) return;
 
-			if (output)
+
+			csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_start/' + ifname + '/' + tx_val + '/' + type_val + '/'+ filter_val, null,
+			function(x)
 			{
-				output.innerHTML =
-					'<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" /> ' +
-					'<%:Waiting for capture to complete...%>';
-
-				bt_action.value = '<%:Stop capture%>';
-				bt_action.setAttribute('data-action', 'stop');
-
-				csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_start/' + ifname + '/' + tx_val + '/' + type_val + '/'+ filter_val, null,
-				function(x)
-				{
-					if (!x)
-					{
-						output.innerHTML = '<span class="error"><%:Invalid response!%></span>';
-					}
-					else
-					{
-						var data = x.responseText.trim();
-						output.innerHTML = '<pre>' + data + '</pre>';
-
-						var last_line = data.lastIndexOf("\n");
-						var url = last_line > 0 ? data.substring(last_line) : data;
-						if (url.indexOf("http") != -1)
-						{
-							var t_link = document.getElementById("t_link_list");
-							if (!t_link) return;
-
-							if (!init)
-							{
-								t_link.deleteRow(1);
-								init = 1;
-							}
-
-							var row = t_link.insertRow(1);
-							row.insertCell(0).innerHTML = '<a href="'+url+'" target="_blank">'+url+'</a>';
-							row.insertCell(1).innerHTML = get_current_date();
-						}
-					}
-
-					bt_action.value = '<%:Start capture%>';
-					bt_action.setAttribute('data-action', 'start');
-					bt_action.disabled=false;
-				});
-			}
+				if (!x)
+					update_status("failed");
+				else
+					update_status("running");
+			});
 		}
 	}
+
+	function update_status(status)
+	{
+		if (status == "running")
+		{
+			if (capture_running) return;
+
+			output.innerHTML = loader + '<%:Waiting for capture to complete...%>';
+
+			bt_action.value = '<%:Stop capture%>';
+			bt_action.setAttribute('data-action', 'stop');
+			capture_running = 1;
+		}
+		else
+		{
+			if (!capture_running) return;
+
+			if (status == "completed")
+			{
+				output.innerHTML = "<pre> Capture completed. </pre>";
+				link_list_update();
+			}
+			else
+			if (status == "failed")
+				output.innerHTML = "<pre> Capture failed. </pre>";
+
+			bt_action.value = '<%:Start capture%>';
+			bt_action.setAttribute('data-action', 'start');
+			bt_action.disabled = false;
+			capture_running = 0;
+		}
+	}
+
+
+	function check_status()
+	{
+
+		XHR.poll(3, '<%=luci.dispatcher.build_url("admin", "network")%>/cshark_check_status', null,
+		function(x)
+		{
+			if (!x)
+			{
+				if (capture_running)
+					update_status("failed");
+
+				return;
+			}
+
+			var data = x.responseText.trim();
+
+			update_status( (data == 1) && "running" || "completed");
+		})
+	}
+
+	function link_list_clear()
+	{
+		var csxhr_del = new XHR();
+		csxhr_del.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_link_list_clear', null,
+		function(x)
+		{
+			if (!x)
+				return false;
+
+			link_list_update();
+		});
+	}
+
+
+	function link_list_update()
+	{
+		var t_link = document.getElementById("t_link_list");
+		if (!t_link) return;
+
+		var row_count = t_link.rows.length;
+		while(--row_count) t_link.deleteRow(row_count);
+
+		var cell = t_link.insertRow(-1).insertCell(0);
+		cell.colSpan = 2;
+		cell.innerHTML = loader;
+
+		var csxhr_link = new XHR();
+		csxhr_link.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_link_list_get', null,
+		function(x, entries)
+		{
+			var row = t_link.deleteRow(1);
+
+			if (!x) return;
+
+			if (!entries || !entries.length)
+			{
+				var cell = t_link.insertRow(-1).insertCell(0);
+				cell.colSpan = 2;
+				cell.innerHTML = '<em><br />There are no captures available yet.</em>';
+
+				return;
+			}
+
+			for (var i = 0, len = entries.length; i < len ; i++)
+			{
+				var entry = entries[i][0];
+				if (!entry) continue;
+
+				var data = entry.split(",");
+				var url = data[0];
+				var timestamp = data[1];
+
+				var row = t_link.insertRow(-1);
+				row.insertCell(0).innerHTML = '<a href="'+url+'" target="_blank">'+url+'</a>';
+				row.insertCell(1).innerHTML = get_date(timestamp);
+			}
+
+			var cell = t_link.insertRow(-1).insertCell(0);
+			cell.colSpan = 2;
+			cell.style.textAlign="center";
+			cell.innerHTML = '<input type="button" onclick="link_list_clear()" class="cbi-button" value ="<%:Clear list%>" /></div>';
+		})
+	}
+
+	check_status();
+	link_list_update();
 //]]></script>
