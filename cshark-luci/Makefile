@@ -19,7 +19,7 @@ define Package/cshark-luci
   CATEGORY:=Network
   TITLE:=Cloudshark capture tool web ui
   URL:=http://www.cloudshark.org/
-  DEPENDS:=+cshark
+  DEPENDS:=+cshark +luci
 endef
 
 define Package/cshark-luci/description
