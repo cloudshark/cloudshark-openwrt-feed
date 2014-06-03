@@ -48,7 +48,7 @@ function cshark_iface_dump_start(ifname, value, flag, filter)
 
 	luci.http.prepare_content("text/plain")
 
-	local res = os.execute("/sbin/cshark -i " .. ifname .. " -" .. flag .. " " .. value .. " -p /tmp/cshark-luci.pid " .. filter .. " 2>&1 &")
+	local res = os.execute("(/sbin/cshark -i " .. ifname .. " -" .. flag .. " " .. value .. " -p /tmp/cshark-luci.pid " .. filter .. " > /tmp/cshark-luci.out 2>&1) &")
 	luci.http.write(tostring(res))
 end
 
@@ -57,22 +57,40 @@ function cshark_iface_dump_stop()
 
 	local f = io.open("/tmp/cshark-luci.pid", "rb")
 	local pid = f:read("*all")
-	f:close()
+	io.close(f)
 
 	local res = os.execute("kill -INT " .. pid)
 	luci.http.write(tostring(res))
 end
 
 function cshark_check_status()
-	luci.http.prepare_content("text/plain")
 
+	local msg = "";
+	local status;
 	local f = io.open("/tmp/cshark-luci.pid","r")
 	if f ~= nil then
+		status = 1;
 		io.close(f)
-		luci.http.write("1")
 	else
-		luci.http.write("0")
+		status = 0;
 	end
+
+	f = io.open("/tmp/cshark-luci.out","r")
+	if f ~= nil then
+		msg = f:read("*all")
+		io.close(f)
+		if msg ~= '' then
+			os.remove('/tmp/cshark-luci.out')
+		end
+	end
+
+	luci.http.prepare_content("application/json")
+
+	local res = {}
+	res["status"] = status;
+	res["msg"] = msg;
+
+	luci.http.write_json(res)
 end
 
 function cshark_link_list_get()

@@ -87,6 +87,8 @@ $Id$
 	var a_clear_links = document.getElementById('a_clear_links');
 	var output = document.getElementById('cshark-rc-output');
 	var loader = '<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" width="16" height="16" style="vertical-align:middle" /> ';
+	var msg = { 'start' : '<%:Waiting for capture to complete...%>', 'stop' : '<%:Waiting for upload to complete...%>' };
+	var status_msg = msg['start'];
 
 	function get_date(timestamp)
 	{
@@ -111,6 +113,8 @@ $Id$
 
 		if (action == "stop")
 		{
+			update_status(action);
+
 			bt_action.disabled = true;
 
 			csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_stop', null,
@@ -125,6 +129,8 @@ $Id$
 		}
 		else if (action == "start")
 		{
+			update_status(action);
+
 			var s_interfaces = document.getElementById('s_interfaces');
 			var s_value_type = document.getElementById('s_value_type');
 			var i_timeout = document.getElementById('i_filter');
@@ -146,42 +152,48 @@ $Id$
 			function(x)
 			{
 				if (!x)
-					update_status("failed");
+					update_status("failed", "Invalid response on start.");
 				else
 					update_status("running");
 			});
 		}
 	}
 
-	function update_status(status)
+	function update_status(status, message)
 	{
-		if (status == "running")
+		switch (status)
 		{
-			if (capture_running) return;
+			case 'start':
+			case 'stop':
+				status_msg = msg[status];
+				output.innerHTML = loader + status_msg;
+			break
 
-			output.innerHTML = loader + '<%:Waiting for capture to complete...%>';
+			case 'running':
+				if (capture_running) break;;
 
-			bt_action.value = '<%:Stop capture%>';
-			bt_action.setAttribute('data-action', 'stop');
-			capture_running = 1;
-		}
-		else
-		{
-			if (!capture_running) return;
+				output.innerHTML = loader + status_msg;
 
-			if (status == "completed")
-			{
-				output.innerHTML = "<pre> Capture completed. </pre>";
-				link_list_update();
-			}
-			else
-			if (status == "failed")
-				output.innerHTML = "<pre> Capture failed. </pre>";
+				bt_action.value = '<%:Stop capture%>';
+				bt_action.setAttribute('data-action', 'stop');
+				capture_running = 1;
+			break;
 
-			bt_action.value = '<%:Start capture%>';
-			bt_action.setAttribute('data-action', 'start');
-			bt_action.disabled = false;
-			capture_running = 0;
+			case 'completed':
+			case 'failed':
+				if (!capture_running) break;
+
+				if (status == "completed")
+				{
+					link_list_update();
+				}
+
+				output.innerHTML = "<pre> " + message + " </pre>";
+				bt_action.value = '<%:Start capture%>';
+				bt_action.setAttribute('data-action', 'start');
+				bt_action.disabled = false;
+				capture_running = 0;
+			break;
 		}
 	}
 
@@ -190,19 +202,18 @@ $Id$
 	{
 
 		XHR.poll(3, '<%=luci.dispatcher.build_url("admin", "network")%>/cshark_check_status', null,
-		function(x)
+		function(x, data)
 		{
 			if (!x)
 			{
 				if (capture_running)
-					update_status("failed");
+					update_status("failed", "Invalid response when fetching status.");
 
 				return;
 			}
+			console.log(data)
 
-			var data = x.responseText.trim();
-
-			update_status( (data == 1) && "running" || "completed");
+			update_status( (data.status == 1) && "running" || "completed", data.msg);
 		})
 	}
 
