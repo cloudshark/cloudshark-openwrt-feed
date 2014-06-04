@@ -122,7 +122,7 @@ $Id$
 			{
 				if (!x || x.responseText.trim() != "0")
 				{
-					XHR.halt();
+					update_status("failed", "Invalid response on stop.");
 				}
 			});
 
