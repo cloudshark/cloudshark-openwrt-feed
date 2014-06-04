@@ -129,7 +129,6 @@ $Id$
 		}
 		else if (action == "start")
 		{
-			update_status(action);
 
 			var s_interfaces = document.getElementById('s_interfaces');
 			var s_value_type = document.getElementById('s_value_type');
@@ -142,11 +141,13 @@ $Id$
 			var tx_val = document.getElementById('tx_value').value.trim();
 			var type_val = s_value_type.options[t_n].value.trim();
 
-			if (!tx_val) tx_val = 0;
 			if (type_val != 'P' && type_val != 'T' && type_val != 'S') type_val = 'T';
 
-			if (!ifname || isNaN(tx_val) || !type_val) return;
+			if (!ifname || !type_val) return;
 
+			if (isNaN(tx_val)) return alert("<%:value for [seconds, packets, bytes] must be Integer%>");
+
+			update_status(action);
 
 			csxhr.get('<%=luci.dispatcher.build_url("admin", "network")%>/cshark_iface_dump_start/' + ifname + '/' + tx_val + '/' + type_val + '/'+ filter_val, null,
 			function(x)

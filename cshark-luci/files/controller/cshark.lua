@@ -36,14 +36,19 @@ function index()
 end
 
 function cshark_iface_dump_start(ifname, value, flag, filter)
-	if ifname == nil then
+	if ifname == nil or ifname == '' then
 		ifname = 'any'
 	end
-	if value == nil then
+	if tonumber(value) == nil
+	then
 		value = '0'
 	end
-	if filter == nil then
+	if filter == nil or filter == '' then
 		filter = ''
+	end
+
+	if flag == nil or flag == '' then
+		filter = 'T'
 	end
 
 	luci.http.prepare_content("text/plain")
