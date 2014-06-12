@@ -8,26 +8,19 @@ We will assume it is configured in the ```/opt/openwrt``` directory
 
 ## Add CloudShark to OpenWrt
 
-    # clone CloudShark feed from github
-    cd /opt/openwrt
-    git clone https://github.com/cloudshark/cloudshark-openwrt-feed.git packages-cloudshark
-
-    # edit feeds configuration file '/opt/openwrt/trunk/feeds.conf'
-    # comment or remove existing 'luci' feed
-    # src-git luci http://git.openwrt.org/project/luci.git
-
-    # add our feed
-    src-link cloudshark /opt/openwrt/packages-cloudshark
+### Add CloudShark feed
+    # add to '/opt/openwrt/trunk/feeds.conf'
+    src-git cloudshark https://github.com/cloudshark/cloudshark-openwrt-feed.git
 
     # update and install all feed packages
-    cd trunk
+    cd /opt/openwrt/trunk
     ./scripts/feeds update -a
     ./scripts/feeds install -a
 
-    # select CloudShark packages for installation
+### Select CloudShark package
     make menuconfig
     > Network -> cshark
-    > Luci -> Applications -> luci-app-cshark
+    > Network -> cshark-luci
 
 ## Build and run OpenWrt with CloudShark
 
