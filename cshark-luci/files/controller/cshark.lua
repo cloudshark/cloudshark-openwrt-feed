@@ -106,11 +106,7 @@ function cshark_link_list_get()
 	luci.http.write("[")
 
 	local t = uci:get("cshark", "cshark", "entry")
-	local n = 0
 	for i = #t, 1, -1 do
-		n = n + 1
-		if n > 10 then break end
-
 		luci.http.write("[\"" .. t[i] .. "\"],")
 	end
 
