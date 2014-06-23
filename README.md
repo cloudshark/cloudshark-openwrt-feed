@@ -6,21 +6,18 @@ Setup OpenWrt development environment following [official instructions](http://w
 
 We will assume it is configured in the ```/opt/openwrt``` directory
 
-## Add CloudShark to OpenWrt
-
-### Add CloudShark feed
-    # add to '/opt/openwrt/trunk/feeds.conf'
-    src-git cloudshark https://github.com/cloudshark/cloudshark-openwrt-feed.git
-
-    # update and install all feed packages
+## Add default feeds to OpenWrt
     cd /opt/openwrt/trunk
+    # update and install all feed packages
+    cp feeds.conf.default feeds.conf
+
     ./scripts/feeds update -a
     ./scripts/feeds install -a
 
 ### Select CloudShark package
     make menuconfig
     > Network -> cshark
-    > Network -> cshark-luci
+    > LuCI -> 3. Applications -> luci-app-cshark
 
 ## Build and run OpenWrt with CloudShark
 
