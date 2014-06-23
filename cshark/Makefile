@@ -38,6 +38,7 @@ define Package/luci-app-cshark
   SUBMENU:=3. Applications
   TITLE:=Cloudshark capture tool Web UI
   DEPENDS:=+cshark +luci
+  MAINTAINER:=Luka Perkov <luka@openwrt.org>
 endef
 
 CMAKE_OPTIONS = \
