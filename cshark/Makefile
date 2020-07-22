@@ -37,7 +37,7 @@ define Package/luci-app-cshark
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=Cloudshark capture tool Web UI
-  DEPENDS:=+cshark +luci
+  DEPENDS:=+cshark +luci +libuci-lua
   MAINTAINER:=Luka Perkov <luka@openwrt.org>
 endef
 
