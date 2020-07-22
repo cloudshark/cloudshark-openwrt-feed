@@ -59,11 +59,6 @@ define Package/cshark/install
 	$(INSTALL_CONF) \
 		$(PKG_BUILD_DIR)/config/cshark \
 		$(1)/etc/config/
-
-	$(INSTALL_DIR) $(1)/etc/ssl/certs
-	$(INSTALL_CONF) \
-		$(PKG_BUILD_DIR)/config/ca-the_usertrust_network.pem \
-		$(1)/etc/ssl/certs/
 endef
 
 define Package/luci-app-cshark/install
