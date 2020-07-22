@@ -28,7 +28,7 @@ define Package/cshark
   CATEGORY:=Network
   TITLE:=CloudShark capture tool
   URL:=http://www.cloudshark.org/
-  DEPENDS:=+libjson-c +libpcap +libuci +libubox +libuclient +libustream-polarssl
+  DEPENDS:=+libjson-c +libpcap +libuci +libubox +libuclient +libustream-polarssl +ca-bundle
   MAINTAINER:=Luka Perkov <luka@openwrt.org>
 endef
 
