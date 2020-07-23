@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=cshark
-PKG_VERSION:=2014-06-23
+PKG_VERSION:=2020-07-22
 PKG_RELEASE=$(PKG_SOURCE_VERSION)
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/cloudshark/cshark.git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=5cb5f8888b4ec245bdf07c49f81576d1f33107ea
+PKG_SOURCE_VERSION:=c0d32fb6df3cd095fecac8aefe8d188170246403
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_BUILD_PARALLEL:=1
@@ -28,7 +28,7 @@ define Package/cshark
   CATEGORY:=Network
   TITLE:=CloudShark capture tool
   URL:=http://www.cloudshark.org/
-  DEPENDS:=+libjson-c +libpcap +libuci +libubox +libuclient +libustream-polarssl +ca-bundle
+  DEPENDS:=+libjson-c +libpcap +libuci +libubox +libuclient +libustream-mbedtls +ca-bundle
   MAINTAINER:=Luka Perkov <luka@openwrt.org>
 endef
 
